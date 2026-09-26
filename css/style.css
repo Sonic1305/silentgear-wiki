@@ -173,3 +173,4 @@ table.data td .namecell { white-space: nowrap; }
 @media (min-width: 861px) {
   #b-out { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; }
 }
+.role { color: var(--accent2); }

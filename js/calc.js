@@ -350,7 +350,7 @@ export function calculate(gear, parts, opts = {}) {
   }
   if (["bow", "slingshot"].includes(gear)) derived.push(["Draw time", `${fmt(Math.min(100, Math.max(10, 20 / ((fin.draw_speed || 0) <= 0 ? 1 : fin.draw_speed))) / 20, 2)} s`]);
   if (gear === "crossbow") derived.push(["Charge time", `${fmt(Math.round(Math.min(50, Math.max(5, 25 / (fin.draw_speed || 1)))) / 20, 2)} s`]);
-  if (["bow", "crossbow", "slingshot"].includes(gear)) derived.push(["Arrow damage (vanilla arrow)", fmt(2 - 1 + (fin.ranged_damage || 0), 2)]);
+  if (["bow", "crossbow", "slingshot"].includes(gear)) derived.push([gear === "slingshot" ? "Arrow damage (shot)" : "Arrow damage (vanilla arrow)", fmt(2 - 1 + (fin.ranged_damage || 0), 2)]);
   if (props.includes("enchantment_value")) derived.push(["Enchantability", fmt(Math.trunc(fin.enchantment_value || 0), 0)]);
   if (props.includes("rarity")) {
     const r = Math.trunc(fin.rarity || 0);

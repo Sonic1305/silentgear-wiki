@@ -3,7 +3,7 @@ import { $, $$, esc, fmt, store } from "./util.js";
 import { db, partTypeName, statName, traitName } from "./db.js";
 import { matLink, itemChip } from "./app.js";
 import { gearInfo, gearName, GROUPS } from "./gear.js";
-import { GEAR_DEFS, isGearType } from "./geardefs.js";
+import { GEAR_DEFS, WEAPON_ROLES, isGearType } from "./geardefs.js";
 import { calculate, DISPLAY_STATS, usableIn, GRADES } from "./calc.js";
 import { renderGearIcon } from "./render.js";
 
@@ -99,7 +99,8 @@ function render(app) {
         <div class="slot">
           <div class="slot-head"><b>Gear type</b></div>
           <select id="b-gear" style="width:100%">${GROUPS.map(([t, list]) => `<optgroup label="${esc(t)}">${list.filter(g => GEAR_DEFS[g]).map(g => `<option value="${g}" ${g === gear ? "selected" : ""}>${esc(gearName(g))}</option>`).join("")}</optgroup>`).join("")}</select>
-          ${d.notes ? `<p class="muted small" style="margin:6px 0 0">${esc(d.notes)}</p>` : ""}
+          ${WEAPON_ROLES[gear] ? `<p class="role small" style="margin:6px 0 0">${esc(WEAPON_ROLES[gear].text)}</p>` : ""}
+          ${d.notes && !WEAPON_ROLES[gear] ? `<p class="muted small" style="margin:6px 0 0">${esc(d.notes)}</p>` : ""}
           <label class="chk" style="margin-top:8px"><input type="checkbox" id="b-obt" ${state.obtainable ? "checked" : ""}> Only materials obtainable in this pack</label>
         </div>
         ${slots.map(pt => {

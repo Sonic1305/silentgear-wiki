@@ -3,7 +3,9 @@ import { $, esc, idPath, titleCase } from "./util.js";
 import { db, gearTypeName, partTypeName } from "./db.js";
 import { itemChip, traitChip } from "./app.js";
 import { renderGearIcon } from "./render.js";
-import { GEAR_DEFS } from "./geardefs.js";
+import { GEAR_DEFS, WEAPON_ROLES, WEAPON_STYLES } from "./geardefs.js";
+import { calculate } from "./calc.js";
+import { fmt } from "./util.js";
 
 // ---- derive gear info from recipes ----
 let GEAR = null;
@@ -59,13 +61,16 @@ export function viewGear(app) {
   app.innerHTML = `
     <h1>Gear &amp; Parts</h1>
     <div class="note">In this pack, <b>SGear Metalworks</b> is installed: materials with the category <span class="chip cat">casting</span> (most metals and gems, ${castN} materials) <b>can't</b> be crafted into parts with a blueprint in the crafting grid. You <b>cast</b> those parts in the Productive Metalworks foundry using a part cast. Non-metal materials (wood, stone, bone, flint, …) still work with blueprints as usual.</div>
+    <h2>Which weapon fits your style?</h2>
+    <div class="table-wrap"><table class="data"><tbody>${WEAPON_STYLES.map(([style, list]) => `<tr><td>${esc(style)}</td><td>${list.map(g => `<a class="chip" href="#/gear/${g}">${esc(gearName(g))}</a>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>
+    <p class="muted small">Numbers on the weapon cards are for an iron head with a wooden rod, so you can compare the weapon types directly. Materials change them a lot; try the Builder.</p>
     ${groups.map(([title, list]) => `
       <h2>${esc(title)}</h2>
       <div class="grid">${list.filter(g => G["silentgear:" + g]).map(g => {
         const gi = G["silentgear:" + g];
         return `<a class="card" href="#/gear/${esc(g)}" style="display:flex;gap:12px;align-items:center">
           <canvas class="gear sm" data-gear="${esc(g)}"></canvas>
-          <div><b>${esc(gearName(g))}</b><div class="muted small">${esc(blueprintDesc(g))}</div>
+          <div><b>${esc(gearName(g))}</b><div class="${WEAPON_ROLES[g] ? "role" : "muted"} small">${esc(WEAPON_ROLES[g]?.tag || blueprintDesc(g))}</div>${WEAPON_ROLES[g] ? `<div class="small muted">${ironStats(g)}</div>` : ""}
           <div class="small muted">${gi.materialCount ? `${gi.materialCount}× main material` : ""}${gi.def ? " · " + gi.def.required.map(p => partTypeName(p)).join(" + ") : ""}</div></div></a>`;
       }).join("")}</div>`).join("")}
     <h2>Upgrades</h2>
@@ -107,6 +112,7 @@ export function viewGearDetail(app, gear) {
       <div>
         <h1 style="margin:0">${esc(gearName(gear))}</h1>
         <div class="muted">${esc(blueprintDesc(gear))}</div>
+        ${WEAPON_ROLES[gear] ? `<p class="role" style="max-width:720px;margin:8px 0 0">${esc(WEAPON_ROLES[gear].text)}</p>` : ""}
         ${d?.parents?.length ? `<div class="meta"><span class="chip cat">counts as: ${d.parents.map(p => esc(gearTypeName(p))).join(", ")}</span></div>` : ""}
       </div>
       <div style="margin-left:auto"><a class="btn" href="#/builder?gear=${esc(gear)}">Open in Builder</a></div>
@@ -152,3 +158,21 @@ function partSections() {
   return `<h2>Other parts</h2><div class="table-wrap"><table class="data"><thead><tr><th>Part</th><th>Blueprint recipe</th><th>Casting</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 }
 
+
+// Reference stats with an iron head + wooden rod (+ string cord / feather fletching where needed)
+function ironStats(g) {
+  const parts = { main: { mat: "silentgear:iron", count: gearInfo()["silentgear:" + g]?.materialCount || 1 }, rod: { mat: "silentgear:wood", count: 2 } };
+  const d = GEAR_DEFS[g];
+  if (d?.required.includes("cord")) parts.cord = { mat: "silentgear:string", count: 3 };
+  if (d?.required.includes("fletching")) parts.fletching = { mat: "silentgear:feather", count: 1 };
+  const r = calculate(g, parts);
+  const s = r.stats, bits = [];
+  if (s.attack_damage !== undefined) bits.push(`${fmt(1 + s.attack_damage, 1)} dmg`, `${fmt(s.attack_speed, 1)} speed`);
+  const der = k => r.derived.find(x => x[0].startsWith(k))?.[1];
+  if (["bow", "crossbow", "slingshot"].includes(g)) bits.push(`${der("Arrow damage")} ${g === "slingshot" ? "shot" : "arrow"} dmg`, `${der(g === "crossbow" ? "Charge time" : "Draw time")} ${g === "crossbow" ? "reload" : "draw"}`);
+  if (g === "arrow") bits.push(`${fmt(s.ranged_damage, 2)} arrow dmg`, `${der("Arrows per craft")} per craft`);
+  if (s.attack_reach) bits.push(`+${fmt(s.attack_reach, 1)} reach`);
+  const md = r.derived.find(x => x[0].startsWith("Max durability"));
+  if (md) bits.push(`${md[1]} uses`);
+  return bits.join(" · ");
+}

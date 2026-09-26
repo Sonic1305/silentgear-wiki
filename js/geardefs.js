@@ -102,3 +102,67 @@ export const GEAR_DEFS = {
   necklace: def(["main"], ["setting", ...CURIO_OPT], "NONE", "Curios only compute traits (no stats). The chain must be metal; a gem setting is optional."),
 };
 for (const [k, d] of Object.entries(GEAR_DEFS)) d.parents = gearChain(k).slice(1).filter(t => t !== "all").map(t => "silentgear:" + t);
+
+// What each weapon is good at (checked against the 4.2.1 item classes and part stats)
+export const WEAPON_ROLES = {
+  sword: {
+    tag: "All-rounder, sweep attack hits groups",
+    text: "The balanced choice: +3 damage at 1.6 attack speed, and the sweep attack hits several mobs at once. Pick this if you're unsure.",
+  },
+  katana: {
+    tag: "Big hits for bosses and 1-on-1",
+    text: "Highest blade damage (+4) but slower swings (1.4). Keeps the sword sweep, has 12.5% more durability and slightly lower enchantability. Needs 3 materials.",
+  },
+  machete: {
+    tag: "Fast blade that also clears plants",
+    text: "Fastest sword-type weapon (1.8 speed) with lower damage (+2) and 40% more harvest speed. Breaking a plant also cuts plants around it (sneak to cut just one block). Great for jungles, exploring and farms.",
+  },
+  dagger: {
+    tag: "Very fast combo hits on one target",
+    text: "Very fast (2.8 speed) but weak per hit (+2, half the material's base damage). Enemies become hittable again sooner (their invulnerability time is cut to 67%), so fast clicking pays off. Only 1 material.",
+  },
+  knife: {
+    tag: "Cheap utility blade, quick hits",
+    text: "1 material, fast (2.4 speed), low damage (+1, half the material's base damage), 25% more durability and double repair efficiency. Has the same quicker re-hit as the dagger. Also used to cut logs into template boards for early blueprints.",
+  },
+  spear: {
+    tag: "+1 block reach, hit before they hit you",
+    text: "+1 block attack reach, so you hit mobs before they reach you. +3 damage, slow (1.3 speed), 20% less durability, no sweep attack. Good for fighting from behind blocks or holding a doorway.",
+  },
+  mace: {
+    tag: "Huge damage when falling from height",
+    text: "Works like the vanilla mace: the smash attack does bonus damage based on how far you fell. +3 damage, very slow (0.6 speed), double durability. Best combined with wind charges or an elytra. The mace core also needs a Heavy Core.",
+  },
+  trident: {
+    tag: "Strong melee and can be thrown, good in water",
+    text: "Strong melee (+4 damage, 1.1 speed) and can be thrown like a vanilla trident. Riptide works, and projectile speed makes throws and Riptide stronger. Ideal for ocean fights and water travel.",
+  },
+  bow: {
+    tag: "Flexible ranged weapon",
+    text: "Standard ranged weapon: +1 ranged damage and a flexible charge. Shoots any arrows, including Silent Gear arrows. Draw speed decides how fast you reach full power.",
+  },
+  crossbow: {
+    tag: "Strongest single shots",
+    text: "+2 ranged damage, the most of the ranged weapons. It has to be loaded first, but it can stay loaded and also fires fireworks. Slower rate of fire than a bow.",
+  },
+  slingshot: {
+    tag: "Cheap early ranged, shoots pebbles",
+    text: "Shoots pebbles instead of arrows. Fastest draw (+1.5 draw speed) but low damage (ranged damage −75%, then +0.5). Only 2 materials, handy early on.",
+  },
+  arrow: {
+    tag: "Custom ammo for bows and crossbows",
+    text: "The arrow head material sets the damage, and tips or coatings add traits. One craft makes a whole stack depending on durability.",
+  },
+};
+
+// Play style -> recommended weapons
+export const WEAPON_STYLES = [
+  ["Fighting groups of mobs", ["sword", "machete"]],
+  ["Bosses and single strong enemies", ["katana", "mace", "crossbow"]],
+  ["Fast clicking and combos", ["dagger", "knife"]],
+  ["Keeping distance in melee", ["spear"]],
+  ["Water and throwing", ["trident"]],
+  ["Attacking from above", ["mace"]],
+  ["Ranged, all-purpose", ["bow"]],
+  ["Ranged, cheap and early", ["slingshot"]],
+];
