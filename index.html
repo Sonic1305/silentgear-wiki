@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Silent Gear Wiki</title>
+<meta name="description" content="Materials, parts, traits and a gear builder for Silent Gear, Silent Gems and SGear Metalworks, generated from the TNP Limitless 8 modpack.">
+<link rel="icon" href="icons/sg/sword/main_generic_hc.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/">
+    <canvas id="brand-icon" width="16" height="16"></canvas>
+    <span>Silent Gear Wiki</span>
+  </a>
+  <nav id="nav">
+    <a href="#/materials" data-nav="materials">Materials</a>
+    <a href="#/traits" data-nav="traits">Traits</a>
+    <a href="#/gear" data-nav="gear">Gear &amp; Parts</a>
+    <a href="#/builder" data-nav="builder">Builder</a>
+    <a href="#/compare" data-nav="compare">Compare</a>
+  </nav>
+  <div class="search-wrap">
+    <input id="global-search" type="search" placeholder="Search materials, traits, gear…" autocomplete="off" aria-label="Search">
+    <div id="search-results" class="search-results" hidden></div>
+  </div>
+</header>
+<main id="app"><p class="loading">Loading data…</p></main>
+<footer class="foot" id="foot"></footer>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
