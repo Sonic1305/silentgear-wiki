@@ -193,3 +193,9 @@ table.data th .muted { text-transform: none; letter-spacing: 0; font-weight: 400
 .picker-row.cur { border-color: var(--line); }
 .picker-name { display: flex; align-items: center; gap: 6px; }
 .picker-fx { margin: 2px 0 0 26px; line-height: 1.5; }
+
+table.breakdown td:first-child { white-space: nowrap; }
+table.breakdown th { vertical-align: bottom; }
+table.breakdown tr.section td { background: var(--bg2); color: var(--muted); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-top: 8px; }
+table.breakdown th { white-space: normal; min-width: 64px; }
+table.breakdown th, table.breakdown td { padding: 6px 8px; }

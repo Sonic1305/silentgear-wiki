@@ -287,10 +287,24 @@ function breakdownCard(gear, statRows) {
       ${steps.slice(1).map((st, i) => `<td class="num">${fmtDelta(fs, (vals[i + 1] ?? 0) - (vals[i] ?? 0)) || '<span class="muted">·</span>'}</td>`).join("")}
       <td class="num"><b>${vals.at(-1) === undefined ? "" : fmtStat(fs, vals.at(-1))}</b></td></tr>`);
   }
-  const traitRow = `<tr><td>Traits</td>
-    <td class="small">${steps[0].res.traits.map(t => `${esc(traitName(t.trait))} ${t.level}`).join(", ") || '<span class="muted">–</span>'}</td>
-    ${steps.slice(1).map((st, i) => `<td class="small">${traitDiff(steps[i].res, st.res).join("<br>") || '<span class="muted">·</span>'}</td>`).join("")}
-    <td class="small"><b>${steps.at(-1).res.traits.map(t => `${esc(traitName(t.trait))} ${t.level}`).join(", ") || "–"}</b></td></tr>`;
+  // one row per trait, same layout as the stat rows: level after the first part, change per part, final level
+  const lvl = (res, t) => res.traits.find(x => x.trait === t)?.level;
+  const traitIds = [];
+  for (const st of steps) for (const t of st.res.traits) if (!traitIds.includes(t.trait)) traitIds.push(t.trait);
+  const traitCell = (a, b) => {
+    if (a === b) return '<span class="muted">·</span>';
+    if (a === undefined) return `<span class="role" title="new trait">+${b} new</span>`;
+    if (b === undefined) return `<span class="bad" title="trait lost">gone</span>`;
+    return `<span class="${b > a ? "good" : "bad"}">${b > a ? "+" : "−"}${Math.abs(b - a)}</span>`;
+  };
+  const traitRows = traitIds.length ? `<tr class="section"><td colspan="${steps.length + 2}">Traits (level)</td></tr>` + traitIds.map(t => {
+    const lv = steps.map(st => lvl(st.res, t));
+    const max = db.traits[t]?.maxLevel;
+    return `<tr><td><a href="#/trait/${esc(t)}">${esc(traitName(t))}</a></td>
+      <td class="num">${lv[0] ?? '<span class="muted">–</span>'}</td>
+      ${steps.slice(1).map((st, i) => `<td class="num">${traitCell(lv[i], lv[i + 1])}</td>`).join("")}
+      <td class="num"><b>${lv.at(-1) ?? '<span class="muted">–</span>'}</b>${lv.at(-1) && max ? `<span class="muted small"> / ${max}</span>` : ""}</td></tr>`;
+  }).join("") : "";
   // one-line summaries under the slots on the left
   for (let i = 1; i < steps.length; i++) {
     const st = steps[i], prev = steps[i - 1];
@@ -309,9 +323,9 @@ function breakdownCard(gear, statRows) {
   return `<div class="card" style="margin-top:14px">
     <h3>What each part adds</h3>
     <p class="muted small">Parts are added one at a time, left to right: first column is the main part alone, each next column is the change from adding that part, the last column is the result. The columns add up to the total. Because Silent Gear averages and multiplies values, a part's effect can depend on the parts before it. Trait levels also shift when a part brings new traits, since the level formula depends on the total number of trait entries.</p>
-    <div class="table-wrap"><table class="data">
+    <div class="table-wrap"><table class="data breakdown">
       <thead><tr><th>Stat</th><th class="num">${steps[0].label}</th>${steps.slice(1).map(st => `<th class="num">+ ${st.label}${st.optional ? "" : ' <span class="muted small">(req.)</span>'}</th>`).join("")}<th class="num">Total</th></tr></thead>
-      <tbody>${cells.join("")}${traitRow}</tbody>
+      <tbody>${cells.join("")}${traitRows}</tbody>
     </table></div>
   </div>`;
 }
