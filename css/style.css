@@ -179,3 +179,17 @@ table.data td .namecell { white-space: nowrap; }
 .contrib { margin-top: 6px; line-height: 1.6; }
 table.data th .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .builder > *, .cols > * { min-width: 0; }
+
+.mat-pick { position: relative; }
+.picker-btn { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; background: var(--bg2); padding: 7px 10px; }
+.picker-btn .caret { margin-left: auto; color: var(--muted); }
+.picker { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.55); }
+.picker-bar { display: flex; gap: 6px; }
+.picker-bar input { flex: 1; min-width: 0; }
+.picker-bar select { max-width: 45%; }
+.picker-list { max-height: min(60vh, 420px); overflow: auto; }
+.picker-row { padding: 6px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+.picker-row:hover, .picker-row.sel { background: var(--panel2); }
+.picker-row.cur { border-color: var(--line); }
+.picker-name { display: flex; align-items: center; gap: 6px; }
+.picker-fx { margin: 2px 0 0 26px; line-height: 1.5; }

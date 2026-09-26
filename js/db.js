@@ -28,7 +28,12 @@ export async function loadDb() {
     m.props = resolveProps(id);
     m.obtainable = m.ingredient.items.length > 0 || Object.values(m.substitutes).some(s => s.items.length);
   }
-  for (const [id, t] of Object.entries(db.traits)) t.id = id;
+  for (const [id, t] of Object.entries(db.traits)) {
+    t.id = id;
+    // a few traits have no translation in the mod's lang file
+    if (t.name.startsWith("trait.")) t.name = titleCase(idPath(id));
+    if (t.desc.startsWith("trait.")) t.desc = "";
+  }
   for (const [id, p] of Object.entries(db.parts)) p.id = id;
   buildTraitIndex();
   return db;

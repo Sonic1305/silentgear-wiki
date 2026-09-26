@@ -1,5 +1,5 @@
 // Gear builder: pick a gear type and one material per part, see computed stats & traits.
-import { $, $$, esc, fmt, store } from "./util.js";
+import { $, $$, esc, fmt, store, cssColor } from "./util.js";
 import { db, partTypeName, statName, traitName } from "./db.js";
 import { matLink, itemChip } from "./app.js";
 import { gearInfo, gearName, GROUPS } from "./gear.js";
@@ -45,15 +45,26 @@ function upgradesFor(gear) {
   });
 }
 
-function matSelect(pt, val, gear, optional) {
-  const mats = Object.values(db.materials)
+function candidates(pt, val, gear) {
+  return Object.values(db.materials)
     .filter(m => (usableIn(m.id, pt, gear).ok && (!state.obtainable || m.obtainable)) || m.id === val)
     .filter(m => pt !== "main" || mainRuleOk(m, gear))
     .sort((a, b) => a.name.localeCompare(b.name));
-  return `<select data-pt="${pt}" style="flex:1;min-width:0">
-    ${optional ? `<option value="">– none –</option>` : ""}
-    ${mats.map(m => `<option value="${esc(m.id)}" ${m.id === val ? "selected" : ""}>${esc(m.name)}${m.categories.includes("casting") ? " ⛏" : ""}</option>`).join("")}
-  </select>`;
+}
+
+function matIconHtml(m) {
+  const first = m.ingredient.items[0] || Object.values(m.substitutes)[0]?.items[0];
+  const it = first && db.items[first];
+  return it?.icon ? `<img class="ic sm" src="icons/${esc(it.icon)}.png" alt="">`
+    : `<span class="ic sm" style="display:inline-block;border-radius:3px;background:${cssColor(m.color)}"></span>`;
+}
+
+function pickerButton(pt, val) {
+  const m = val && db.materials[val];
+  return `<button type="button" class="picker-btn" data-picker="${pt}" aria-haspopup="listbox">
+    ${m ? `${matIconHtml(m)}<span>${esc(m.name)}${m.categories.includes("casting") ? " ⛏" : ""}</span>` : '<span class="muted">– none –</span>'}
+    <span class="caret">▾</span></button>
+    <div class="picker" data-picker-panel="${pt}" hidden></div>`;
 }
 
 // recipe category filters on the main part (e.g. curios need metal, elytra cloth/sheet)
@@ -112,7 +123,7 @@ function render(app) {
           const n = pt === "main" ? mainCount(gear) : PART_MAT_COUNT[pt] || 1;
           return `<div class="slot">
             <div class="slot-head"><b>${esc(title)}</b><span class="req">${required ? "required" : "optional"} · ${cur?.count ?? n}× material</span></div>
-            <div class="mat-pick">${matSelect(pt, cur?.mat || "", gear, !required)}</div>
+            <div class="mat-pick">${pickerButton(pt, cur?.mat || "")}</div>
             ${sub && sub.items.length ? `<label class="chk" style="margin-top:6px"><input type="checkbox" data-sub="${pt}" ${cur.count === 1 ? "checked" : ""}> Use ${esc(db.items[sub.items[0]]?.name || sub.label)} instead (counts as 1 material)</label>` : ""}
             ${pt !== "main" && cur ? `<div class="contrib small" data-contrib="${pt}"></div>` : ""}
           </div>`;
@@ -146,12 +157,7 @@ function render(app) {
     const url = `${location.origin}${location.pathname}#/builder?b=${encodeURIComponent(payload)}`;
     try { await navigator.clipboard.writeText(url); $("#b-msg").textContent = "Link copied!"; } catch { prompt("Copy this link:", url); }
   });
-  $$("select[data-pt]", app).forEach(sel => sel.addEventListener("change", () => {
-    const pt = sel.dataset.pt;
-    if (!sel.value) delete state.parts[pt];
-    else state.parts[pt] = { mat: sel.value, count: pt === "main" ? mainCount(state.gear) : PART_MAT_COUNT[pt] || 1 };
-    save(app);
-  }));
+  $$("[data-picker]", app).forEach(btn => btn.addEventListener("click", () => openPicker(app, btn.dataset.picker)));
   $$("input[data-sub]", app).forEach(cb => cb.addEventListener("change", () => {
     const pt = cb.dataset.sub;
     state.parts[pt].count = cb.checked ? 1 : PART_MAT_COUNT[pt] || 1;
@@ -341,4 +347,111 @@ function craftSteps(gear) {
   steps.push(`<li>Put the ${esc(db.items[gi?.mainPart]?.name || "main part")} and the required parts in a crafting grid. Optional parts can be added later by crafting the gear together with the part.</li>`);
   if (state.upgrades.length) steps.push(`<li>Apply upgrades: ${state.upgrades.map(u => esc(db.parts[u]?.name || u)).join(", ")}.</li>`);
   return `<ol style="margin:0;padding-left:20px">${steps.join("")}</ol>`;
+}
+
+// ---------- material picker with effect preview ----------
+const SHORT = {
+  durability: "Dur", armor_durability: "Armor Dur", repair_efficiency: "Repair", enchantment_value: "Ench", rarity: "Rarity",
+  harvest_speed: "Mining", block_reach: "Block Reach", attack_damage: "Dmg", attack_speed: "Speed", attack_reach: "Reach",
+  magic_damage: "Magic", ranged_damage: "Ranged", draw_speed: "Draw", projectile_speed: "Proj Speed",
+  projectile_accuracy: "Accuracy", armor: "Armor", armor_toughness: "Tough", knockback_resistance: "KB Res", magic_armor: "Magic Armor",
+};
+let pickerSort = "name";
+
+function effectRows(pt) {
+  const gear = state.gear;
+  const d = GEAR_DEFS[gear];
+  const optional = !d.required.includes(pt);
+  const opts = { grade: state.grade, wear: state.wear, upgrades: state.upgrades };
+  const without = { ...state.parts };
+  delete without[pt];
+  // optional parts: compare against "no part"; required parts: against the current choice
+  const ref = calculate(gear, optional ? without : state.parts, opts);
+  const stats = DISPLAY_STATS(gear);
+  const cur = state.parts[pt];
+  const rows = candidates(pt, cur?.mat, gear).map(m => {
+    const count = pt === "main" ? mainCount(gear) : (cur?.mat === m.id ? cur.count : PART_MAT_COUNT[pt] || 1);
+    const res = calculate(gear, { ...without, [pt]: { mat: m.id, count } }, opts);
+    const deltas = {};
+    for (const st of stats) {
+      const dv = (res.stats[st] ?? 0) - (ref.stats[st] ?? 0);
+      if (Math.abs(dv) >= 0.005) deltas[st] = dv;
+    }
+    const tierChange = res.tier && ref.tier && res.tier.level !== ref.tier.level ? res.tier : null;
+    return { m, res, deltas, tierChange, traits: traitDiff(ref, res), total: res.stats };
+  });
+  return { rows, optional, stats };
+}
+
+function openPicker(app, pt) {
+  const panel = $(`[data-picker-panel="${pt}"]`, app);
+  const wasOpen = !panel.hidden;
+  $$("[data-picker-panel]", app).forEach(p => { p.hidden = true; p.innerHTML = ""; });
+  if (wasOpen) return;
+  const { rows, optional, stats } = effectRows(pt);
+  const cur = state.parts[pt]?.mat || "";
+  if (!stats.includes(pickerSort)) pickerSort = "name";
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="picker-bar">
+      <input type="search" placeholder="Search name or trait…" aria-label="Search materials">
+      <select aria-label="Sort by"><option value="name">Sort: name</option>${stats.map(st => `<option value="${st}" ${pickerSort === st ? "selected" : ""}>Sort: ${esc(statName(st))}</option>`).join("")}</select>
+    </div>
+    <p class="muted small" style="margin:4px 2px 6px">${optional ? "Shows what each material adds to the gear." : "Shows the change compared to your current choice."}</p>
+    <div class="picker-list" role="listbox"></div>`;
+  const list = $(".picker-list", panel);
+  const search = $("input", panel);
+  const sortSel = $("select", panel);
+  let sel = 0;
+  const visible = () => {
+    const q = search.value.trim().toLowerCase();
+    let shown = rows.filter(r => !q || r.m.name.toLowerCase().includes(q) || r.traits.join(" ").toLowerCase().includes(q)
+      || (r.res.traits || []).some(t => traitName(t.trait).toLowerCase().includes(q)));
+    if (pickerSort !== "name") shown = shown.slice().sort((a, b) => (b.total[pickerSort] ?? -1e9) - (a.total[pickerSort] ?? -1e9) || a.m.name.localeCompare(b.m.name));
+    return [...(optional && !q ? [{ none: true }] : []), ...shown];
+  };
+  const draw = () => {
+    const items = visible();
+    sel = Math.max(0, Math.min(sel, items.length - 1));
+    list.innerHTML = items.map((r, i) => r.none
+      ? `<div class="picker-row${!cur ? " cur" : ""}${i === sel ? " sel" : ""}" role="option" data-val=""><span class="muted">– none –</span></div>`
+      : `<div class="picker-row${r.m.id === cur ? " cur" : ""}${i === sel ? " sel" : ""}" role="option" data-val="${esc(r.m.id)}">
+        <div class="picker-name">${matIconHtml(r.m)}<b>${esc(r.m.name)}</b>${r.m.categories.includes("casting") ? ' <span class="muted" title="cast in the foundry">⛏</span>' : ""}${r.m.id === cur ? ' <span class="chip cat">current</span>' : ""}</div>
+        <div class="picker-fx small">${fxHtml(r) || '<span class="muted">no change</span>'}</div>
+      </div>`).join("") || '<p class="muted small" style="padding:6px">No matches.</p>';
+    $$(".picker-row", list).forEach(row => row.addEventListener("click", () => choose(row.dataset.val)));
+    $(".picker-row.sel", list)?.scrollIntoView({ block: "nearest" });
+  };
+  const close = () => { panel.hidden = true; panel.innerHTML = ""; document.removeEventListener("click", outside); };
+  const outside = e => {
+    if (!e.target.closest(`[data-picker-panel="${pt}"]`) && !e.target.closest(`[data-picker="${pt}"]`)) close();
+  };
+  const choose = val => {
+    document.removeEventListener("click", outside);
+    if (!val) delete state.parts[pt];
+    else state.parts[pt] = { mat: val, count: pt === "main" ? mainCount(state.gear) : PART_MAT_COUNT[pt] || 1 };
+    save(app);
+  };
+  search.addEventListener("input", () => { sel = 0; draw(); });
+  sortSel.addEventListener("change", () => { pickerSort = sortSel.value; sel = 0; draw(); });
+  search.addEventListener("keydown", e => {
+    const n = $$(".picker-row", list).length;
+    if (e.key === "ArrowDown") { sel = Math.min(sel + 1, n - 1); draw(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { sel = Math.max(sel - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === "Enter") { const row = $$(".picker-row", list)[sel]; if (row) choose(row.dataset.val); }
+    else if (e.key === "Escape") close();
+  });
+  const idx = visible().findIndex(r => (r.none ? "" : r.m.id) === cur);
+  sel = idx >= 0 ? idx : 0;
+  draw();
+  search.focus({ preventScroll: true });
+  setTimeout(() => document.addEventListener("click", outside));
+}
+
+function fxHtml(r) {
+  const bits = Object.entries(r.deltas).map(([st, dv]) =>
+    `<span class="${dv > 0 ? "good" : "bad"}">${dv > 0 ? "+" : "−"}${fmtStat(st, Math.abs(dv))} ${esc(SHORT[st] || statName(st))}</span>`);
+  if (r.tierChange) bits.unshift(`<span class="role">Tier: ${esc(r.tierChange.label)}</span>`);
+  if (r.res.errors?.length) bits.push(`<span class="bad">${esc(r.res.errors[0])}</span>`);
+  return [...bits, ...r.traits].join(" · ");
 }
