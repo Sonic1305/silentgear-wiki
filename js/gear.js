@@ -60,7 +60,7 @@ export function viewGear(app) {
   const castN = Object.values(db.materials).filter(m => m.categories.includes("casting")).length;
   app.innerHTML = `
     <h1>Gear &amp; Parts</h1>
-    <div class="note">In this pack, <b>SGear Metalworks</b> is installed: materials with the category <span class="chip cat">casting</span> (most metals and gems, ${castN} materials) <b>can't</b> be crafted into parts with a blueprint in the crafting grid. You <b>cast</b> those parts in the Productive Metalworks foundry using a part cast. Non-metal materials (wood, stone, bone, flint, …) still work with blueprints as usual.</div>
+    <div class="note">In this pack, <b>SGear Metalworks</b> is installed: materials with the category <span class="chip cat">casting</span> (most metals and gems, ${castN} materials) <b>can't</b> be crafted into parts with a blueprint in the crafting grid. You <b>cast</b> those parts in the Productive Metalworks foundry using a part cast. Non-metal materials (wood, stone, bone, flint and so on) still work with blueprints as usual.</div>
     <h2>Which weapon fits your style?</h2>
     <div class="table-wrap"><table class="data"><tbody>${WEAPON_STYLES.map(([style, list]) => `<tr><td>${esc(style)}</td><td>${list.map(g => `<a class="chip" href="#/gear/${g}">${esc(gearName(g))}</a>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>
     <p class="muted small">Numbers on the weapon cards are for an iron head with a wooden rod, so you can compare the weapon types directly. Materials change them a lot; try the Builder.</p>
@@ -71,7 +71,7 @@ export function viewGear(app) {
         return `<a class="card" href="#/gear/${esc(g)}" style="display:flex;gap:12px;align-items:center">
           <canvas class="gear sm" data-gear="${esc(g)}"></canvas>
           <div><b>${esc(gearName(g))}</b><div class="${WEAPON_ROLES[g] ? "role" : "muted"} small">${esc(WEAPON_ROLES[g]?.tag || blueprintDesc(g))}</div>${WEAPON_ROLES[g] ? `<div class="small muted">${ironStats(g)}</div>` : ""}
-          <div class="small muted">${gi.materialCount ? `${gi.materialCount}× main material` : ""}${gi.def ? " · " + gi.def.required.map(p => partTypeName(p)).join(" + ") : ""}</div></div></a>`;
+          <div class="small muted">${gi.materialCount ? `${gi.materialCount}× main material` : ""}${gi.def ? ", " + gi.def.required.map(p => partTypeName(p)).join(" + ") : ""}</div></div></a>`;
       }).join("")}</div>`).join("")}
     <h2>Upgrades</h2>
     <p class="muted">Upgrade items are combined with finished gear to add a trait or ability.</p>
@@ -174,5 +174,5 @@ function ironStats(g) {
   if (s.attack_reach) bits.push(`+${fmt(s.attack_reach, 1)} reach`);
   const md = r.derived.find(x => x[0].startsWith("Max durability"));
   if (md) bits.push(`${md[1]} uses`);
-  return bits.join(" · ");
+  return bits.join(", ");
 }

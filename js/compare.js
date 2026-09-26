@@ -40,7 +40,7 @@ function renderCompare() {
   body.innerHTML = `
     <div class="toolbar">
       <label class="muted">Part type <select id="c-pt">${PART_TYPES.map(p => `<option value="silentgear:${p}" ${pt === "silentgear:" + p ? "selected" : ""}>${esc(partTypeName(p))}</option>`).join("")}</select></label>
-      <select id="c-add"><option value="">+ Add material…</option>${matOptions("", pt)}</select>
+      <select id="c-add"><option value="">+ Add material</option>${matOptions("", pt)}</select>
       <button id="c-clear">Clear</button>
     </div>
     ${mats.length ? `<div class="table-wrap"><table class="data">

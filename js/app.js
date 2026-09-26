@@ -53,7 +53,7 @@ function viewHome() {
   const castN = mats.filter(m => m.categories.includes("casting")).length;
   app.innerHTML = `
     <h1>Silent Gear Wiki</h1>
-    <p class="muted">Everything about Silent Gear and its addons, read straight from the modpack's jar files, so values match what's in the game.</p>
+    <p class="muted">Everything about Silent Gear and its addons, read straight from the modpack's jar files, so values match what's in the game. Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for the TNP Limitless 8 server.</p>
     <div class="grid" style="margin-top:18px">
       <a class="card" href="#/materials"><h3>Materials</h3><p class="muted">${mats.length} materials: stats per part type, traits, which items you need, harvest tiers.</p></a>
       <a class="card" href="#/traits"><h3>Traits</h3><p class="muted">${Object.keys(db.traits).length} traits: what they do, max levels, and which materials give them.</p></a>
@@ -68,7 +68,7 @@ function viewHome() {
           <li>Craft a <b>blueprint</b> (or template) for the part you want, e.g. a sword blade.</li>
           <li>Blueprint + materials in a crafting grid gives the <b>part</b>. You can mix materials, and each one adds its stats and traits.</li>
           <li>Combine the main part with a <b>rod</b> (plus optional parts like tip, grip, binding, coating) to get the <b>gear item</b>.</li>
-          <li>Each material behaves differently depending on the <b>part type</b> it's used in (main, rod, tip, …). That's why the material pages show stats per part type.</li>
+          <li>Each material behaves differently depending on the <b>part type</b> it's used in (main, rod, tip and so on). That's why the material pages show stats per part type.</li>
         </ol>
       </div>
       <div class="card">
@@ -109,7 +109,7 @@ function viewMaterials() {
     <h1>Materials</h1>
     <p class="muted">A material's stats depend on the part it's used in. Pick a part type to see the matching values. Click a column header to sort (that works as a ranking).</p>
     <div class="toolbar">
-      <input id="mq" class="grow" type="search" placeholder="Filter by name, item or trait…" value="${esc(matState.q)}">
+      <input id="mq" class="grow" type="search" placeholder="Filter by name, item or trait" value="${esc(matState.q)}">
       <select id="mpt">${PART_TYPES.map(p => `<option value="silentgear:${p}" ${matState.pt === "silentgear:" + p ? "selected" : ""}>${esc(partTypeName(p))}</option>`).join("")}</select>
       <select id="mcat"><option value="">All categories</option>${cats.map(c => `<option ${matState.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
       <select id="msrc"><option value="">All namespaces</option>${srcs.map(s => `<option value="${esc(s)}" ${matState.src === s ? "selected" : ""}>${esc(modName(s))}</option>`).join("")}</select>
@@ -311,7 +311,7 @@ function viewTraits() {
     <h1>Traits</h1>
     <p class="muted">Traits come from materials (depending on the part type) and from some parts/upgrades. Their level on the gear depends on how many materials provide them. Click a trait to see all its sources.</p>
     <div class="toolbar">
-      <input id="tq" class="grow" type="search" placeholder="Filter by name or description…" value="${esc(traitState.q)}">
+      <input id="tq" class="grow" type="search" placeholder="Filter by name or description" value="${esc(traitState.q)}">
       <select id="tsrc"><option value="">All mods</option>${["silentgear", "silentgems", "sgearmetalworks"].map(s => `<option value="${s}" ${traitState.src === s ? "selected" : ""}>${modName(s)}</option>`).join("")}</select>
     </div>
     <div id="tlist"></div>`;
@@ -457,7 +457,9 @@ async function main() {
   }
   initTraitFx(db);
   renderBrand($("#brand-icon"));
-  $("#foot").innerHTML = `Generated ${esc(db.generated)} from the TNP Limitless 8 modpack · ${Object.entries(db.versions).filter(([, v]) => v).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(" · ")} · Unofficial fan page. Silent Gear by SilentChaos512.`;
+  const versions = Object.entries(db.versions).filter(([, v]) => v).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(", ");
+  $("#foot").innerHTML = `Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for the TNP Limitless 8 server.<br>
+    <span class="small">Data generated ${esc(db.generated)} from the modpack (${versions}). Unofficial fan page, Silent Gear by SilentChaos512.</span>`;
   setupSearch();
   window.addEventListener("hashchange", route);
   route();

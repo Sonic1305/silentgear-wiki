@@ -1,10 +1,12 @@
 # Silent Gear Wiki (TNP Limitless 8)
 
+Made by [Sonic1305](https://github.com/Sonic1305).
+
 A small static wiki for **Silent Gear**, **Silent Gems** and **SGear Metalworks**: materials, traits, gear & parts, a gear builder and a material compare/ranking page.
 All data is read directly from the modpack's jar files, so it matches the versions on the server.
 
 ## Pages
-- **Materials**: stats per part type (main, rod, tip, …), traits, harvest tier, the items that count as the material, and whether it's cast-only in this pack.
+- **Materials**: stats per part type (main, rod, tip and so on), traits, harvest tier, the items that count as the material, and whether it's cast-only in this pack.
 - **Traits**: what each trait does, max level, conditions, and every material/part that gives it.
 - **Gear & Parts**: required/optional parts, blueprint recipes, foundry casting (SGear Metalworks), upgrades.
 - **Builder**: pick gear + materials and see stats and traits, using formulas ported from the Silent Gear 4.2.1 source. Builds can be shared by link.

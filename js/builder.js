@@ -122,7 +122,7 @@ function render(app) {
           const title = pt === "main" ? (db.items[gi?.mainPart]?.name || "Main part") : partTypeName(pt);
           const n = pt === "main" ? mainCount(gear) : PART_MAT_COUNT[pt] || 1;
           return `<div class="slot">
-            <div class="slot-head"><b>${esc(title)}</b><span class="req">${required ? "required" : "optional"} · ${cur?.count ?? n}× material</span></div>
+            <div class="slot-head"><b>${esc(title)}</b><span class="req">${required ? "required" : "optional"}, ${cur?.count ?? n}× material</span></div>
             <div class="mat-pick">${pickerButton(pt, cur?.mat || "")}</div>
             ${sub && sub.items.length ? `<label class="chk" style="margin-top:6px"><input type="checkbox" data-sub="${pt}" ${cur.count === 1 ? "checked" : ""}> Use ${esc(db.items[sub.items[0]]?.name || sub.label)} instead (counts as 1 material)</label>` : ""}
             ${pt !== "main" && cur ? `<div class="contrib small" data-contrib="${pt}"></div>` : ""}
@@ -284,7 +284,7 @@ function breakdownCard(gear, statRows) {
     const fs = s === "_dur" ? "durability" : s;
     cells.push(`<tr><td>${esc(label)}</td>
       <td class="num">${vals[0] === undefined ? "" : fmtStat(fs, vals[0])}</td>
-      ${steps.slice(1).map((st, i) => `<td class="num">${fmtDelta(fs, (vals[i + 1] ?? 0) - (vals[i] ?? 0)) || '<span class="muted">·</span>'}</td>`).join("")}
+      ${steps.slice(1).map((st, i) => `<td class="num">${fmtDelta(fs, (vals[i + 1] ?? 0) - (vals[i] ?? 0)) || ""}</td>`).join("")}
       <td class="num"><b>${vals.at(-1) === undefined ? "" : fmtStat(fs, vals.at(-1))}</b></td></tr>`);
   }
   // one row per trait, same layout as the stat rows: level after the first part, change per part, final level
@@ -292,7 +292,7 @@ function breakdownCard(gear, statRows) {
   const traitIds = [];
   for (const st of steps) for (const t of st.res.traits) if (!traitIds.includes(t.trait)) traitIds.push(t.trait);
   const traitCell = (a, b) => {
-    if (a === b) return '<span class="muted">·</span>';
+    if (a === b) return "";
     if (a === undefined) return `<span class="role" title="new trait">+${b} new</span>`;
     if (b === undefined) return `<span class="bad" title="trait lost">gone</span>`;
     return `<span class="${b > a ? "good" : "bad"}">${b > a ? "+" : "−"}${Math.abs(b - a)}</span>`;
@@ -317,7 +317,7 @@ function breakdownCard(gear, statRows) {
     bits.push(...traitDiff(prev.res, st.res));
     queueMicrotask(() => {
       const el = document.querySelector(`[data-contrib="${CSS.escape(st.key)}"]`);
-      if (el) el.innerHTML = bits.length ? `Adds: ${bits.join(" · ")}` : '<span class="muted">No effect on stats or traits for this gear.</span>';
+      if (el) el.innerHTML = bits.length ? `Adds: ${bits.join(", ")}` : '<span class="muted">No effect on stats or traits for this gear.</span>';
     });
   }
   return `<div class="card" style="margin-top:14px">
@@ -408,7 +408,7 @@ function openPicker(app, pt) {
   panel.hidden = false;
   panel.innerHTML = `
     <div class="picker-bar">
-      <input type="search" placeholder="Search name or trait…" aria-label="Search materials">
+      <input type="search" placeholder="Search name or trait" aria-label="Search materials">
       <select aria-label="Sort by"><option value="name">Sort: name</option>${stats.map(st => `<option value="${st}" ${pickerSort === st ? "selected" : ""}>Sort: ${esc(statName(st))}</option>`).join("")}</select>
     </div>
     <p class="muted small" style="margin:4px 2px 6px">${optional ? "Shows what each material adds to the gear." : "Shows the change compared to your current choice."}</p>
@@ -467,5 +467,5 @@ function fxHtml(r) {
     `<span class="${dv > 0 ? "good" : "bad"}">${dv > 0 ? "+" : "−"}${fmtStat(st, Math.abs(dv))} ${esc(SHORT[st] || statName(st))}</span>`);
   if (r.tierChange) bits.unshift(`<span class="role">Tier: ${esc(r.tierChange.label)}</span>`);
   if (r.res.errors?.length) bits.push(`<span class="bad">${esc(r.res.errors[0])}</span>`);
-  return [...bits, ...r.traits].join(" · ");
+  return [...bits, ...r.traits].join(", ");
 }
