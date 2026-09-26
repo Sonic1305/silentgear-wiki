@@ -53,7 +53,7 @@ function viewHome() {
   const castN = mats.filter(m => m.categories.includes("casting")).length;
   app.innerHTML = `
     <h1>Silent Gear Wiki</h1>
-    <p class="muted">Everything about Silent Gear and its addons, read straight from the modpack's jar files, so values match what's in the game. Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for the TNP Limitless 8 server.</p>
+    <p class="muted">Everything about Silent Gear and its addons, read straight from the modpack's jar files, so values match what's in the game. Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for TNP Limitless 8.</p>
     <div class="grid" style="margin-top:18px">
       <a class="card" href="#/materials"><h3>Materials</h3><p class="muted">${mats.length} materials: stats per part type, traits, which items you need, harvest tiers.</p></a>
       <a class="card" href="#/traits"><h3>Traits</h3><p class="muted">${Object.keys(db.traits).length} traits: what they do, max levels, and which materials give them.</p></a>
@@ -458,7 +458,7 @@ async function main() {
   initTraitFx(db);
   renderBrand($("#brand-icon"));
   const versions = Object.entries(db.versions).filter(([, v]) => v).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(", ");
-  $("#foot").innerHTML = `Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for the TNP Limitless 8 server.<br>
+  $("#foot").innerHTML = `Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for TNP Limitless 8.<br>
     <span class="small">Data generated ${esc(db.generated)} from the modpack (${versions}). Unofficial fan page, Silent Gear by SilentChaos512.</span>`;
   setupSearch();
   window.addEventListener("hashchange", route);
