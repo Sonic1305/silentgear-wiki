@@ -5,6 +5,7 @@ import { renderGearIcon, renderBrand } from "./render.js";
 import { viewGear, viewGearDetail, gearInfo, gearName } from "./gear.js";
 import { viewBuilder } from "./builder.js";
 import { viewCompare } from "./compare.js";
+import { viewGuide } from "./guide.js";
 
 const app = $("#app");
 
@@ -55,6 +56,7 @@ function viewHome() {
     <h1>Silent Gear Wiki</h1>
     <p class="muted">Everything about Silent Gear and its addons, read straight from the modpack's jar files, so values match what's in the game.</p>
     <div class="grid" style="margin-top:18px">
+      <a class="card" href="#/guide"><h3>Guide</h3><p class="muted">New to Silent Gear? Blueprints, parts, casting, alloys, grading, repairs and ores, step by step.</p></a>
       <a class="card" href="#/materials"><h3>Materials</h3><p class="muted">${mats.length} materials: stats per part type, traits, which items you need, harvest tiers.</p></a>
       <a class="card" href="#/traits"><h3>Traits</h3><p class="muted">${Object.keys(db.traits).length} traits: what they do, max levels, and which materials give them.</p></a>
       <a class="card" href="#/gear"><h3>Gear &amp; Parts</h3><p class="muted">All tools, weapons, armor and curios, and which parts and blueprints you need to craft them.</p></a>
@@ -70,6 +72,7 @@ function viewHome() {
           <li>Combine the main part with a <b>rod</b> (plus optional parts like tip, grip, binding, coating) to get the <b>gear item</b>.</li>
           <li>Each material behaves differently depending on the <b>part type</b> it's used in (main, rod, tip and so on). That's why the material pages show stats per part type.</li>
         </ol>
+        <p style="margin-bottom:0"><a class="btn" href="#/guide">Read the full guide</a></p>
       </div>
       <div class="card">
         <dl class="kv">
@@ -433,7 +436,7 @@ function route() {
   const [path, query] = hash.split("?");
   const params = new URLSearchParams(query || "");
   const seg = path.split("/").filter(Boolean);
-  window.scrollTo(0, 0);
+  if (!(seg[0] === "guide" && params.get("s"))) window.scrollTo(0, 0);
   const id = decodeURIComponent(seg.slice(1).join("/"));
   switch (seg[0]) {
     case undefined: return viewHome();
@@ -444,11 +447,13 @@ function route() {
     case "gear": return id ? (setNav("gear"), viewGearDetail(app, id)) : (setNav("gear"), viewGear(app));
     case "builder": setNav("builder"); return viewBuilder(app, params);
     case "compare": setNav("compare"); return viewCompare(app, params);
+    case "guide": setNav("guide"); viewGuide(app, params); return;
     default: return notFound();
   }
 }
 
 async function main() {
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   try {
     await loadDb();
   } catch (e) {

@@ -22,6 +22,7 @@ OUT_ICONS = ROOT / "icons"
 SG_KINDS = ("silentgear_materials", "silentgear_parts", "silentgear_traits")
 # Mods whose Silent Gear data is loaded after silentgear and may override it (load order).
 LOAD_ORDER = ["silentgear", "silentgems", "sgearmetalworks"]
+CRAFTING_TYPES = {"minecraft:crafting_shaped", "minecraft:crafting_shapeless", "silentgear:tool_action"}
 RECIPE_TYPES = {
     "silentgear:gear_crafting", "silentgear:compound_part", "silentgear:alloy_making",
     "silentgear:alloy_making/gem", "silentgear:alloy_making/metal", "silentgear:alloy_making/fabric",
@@ -57,6 +58,7 @@ class Pack:
         self.sg = {k: {} for k in SG_KINDS}  # id -> (modid-of-jar, json)
         self.sg_src = {k: {} for k in SG_KINDS}
         self.recipes = {}
+        self.crafting = {}  # plain crafting / tool-action recipes from the SG mods (for the guide)
         self.mod_versions = {}
         self.namespaces = set()
         jars = list(base_jars) + sorted(Path(mods_dir).glob("*.jar"))
@@ -155,6 +157,8 @@ class Pack:
                 if (isinstance(d, dict) and d.get("type") in RECIPE_TYPES
                         and not (d["type"] == "productivemetalworks:item_casting" and ns != "sgearmetalworks")):
                     self.recipes[f"{ns}:{'/'.join(parts[3:])[:-5]}"] = d
+                elif isinstance(d, dict) and d.get("type") in CRAFTING_TYPES and ns in ("silentgear", "sgearmetalworks"):
+                    self.crafting[f"{ns}:{'/'.join(parts[3:])[:-5]}"] = d
 
     # ---------- helpers ----------
     def resolve_tag(self, tag, seen=None):
@@ -212,6 +216,10 @@ class Pack:
                 n += 1
             return v if ":" in v else (f"minecraft:{v}" if v else "")
 
+        layers = [res(tex[f"layer{i}"]) for i in range(4) if f"layer{i}" in tex]
+        layers = [t for t in layers if t in self.textures]
+        if len(layers) > 1:
+            return layers  # composited in save_icon (e.g. blueprint paper + pattern)
         for key in ("layer0", "all", "side", "front", "texture", "top", "end", "cross", "particle"):
             if key in tex:
                 t = res(tex[key])
@@ -227,12 +235,20 @@ def save_icon(pack, tex_id, out_name):
     dest = OUT_ICONS / (out_name + ".png")
     if dest.exists():
         return True
-    jar, entry = pack.textures[tex_id]
-    with zipfile.ZipFile(jar) as zf:
-        img = Image.open(io.BytesIO(zf.read(entry))).convert("RGBA")
-    w, h = img.size
-    if h > w:  # animated strip: first frame
-        img = img.crop((0, 0, w, w))
+    img = None
+    for tid in (tex_id if isinstance(tex_id, list) else [tex_id]):
+        jar, entry = pack.textures[tid]
+        with zipfile.ZipFile(jar) as zf:
+            layer = Image.open(io.BytesIO(zf.read(entry))).convert("RGBA")
+        w, h = layer.size
+        if h > w:  # animated strip: first frame
+            layer = layer.crop((0, 0, w, w))
+        if img is None:
+            img = layer
+        else:
+            if layer.size != img.size:
+                layer = layer.resize(img.size, Image.NEAREST)
+            img = Image.alpha_composite(img, layer)
     dest.parent.mkdir(parents=True, exist_ok=True)
     img.save(dest, optimize=True)
     return True
@@ -308,6 +324,15 @@ def main():
                 labels.append(lb or "")
                 items += [i for i in its if i not in items]
             return {"label": " / ".join(l for l in labels if l), "items": [ref_item(i) for i in items[:24]], "more": max(0, len(items) - 24)}
+        if isinstance(ing, dict) and ing.get("type") == "silentgear:material":
+            pt = ing.get("part_type", "silentgear:main")
+            items = []
+            for mid, md in pack.sg["silentgear_materials"].items():
+                if pt in (md.get("properties") or {}) and md.get("type") == "silentgear:simple":
+                    for i in ingredient_items(pack, (md.get("crafting") or {}).get("ingredient"))[1][:2]:
+                        if i not in items:
+                            items.append(i)
+            return {"label": "any " + pt.split(":")[1] + " material", "items": [ref_item(i) for i in items[:24]], "more": max(0, len(items) - 24)}
         label, items = ingredient_items(pack, ing)
         return {"label": label, "items": [ref_item(i) for i in items[:24]], "more": max(0, len(items) - 24)}
 
@@ -373,6 +398,44 @@ def main():
             "raw": d,
         }
 
+    removed = set()
+    for js in (pack_dir / "kubejs/server_scripts").glob("*.js"):
+        for line in js.read_text("utf-8", errors="replace").splitlines():
+            if line.strip().startswith("//"):
+                continue
+            removed.update(re.findall(r"event\.remove\(\{\s*id:\s*['\"]([^'\"]+)['\"]", line))
+
+    crafting = {}
+    for rid, d in pack.crafting.items():
+        res = d.get("result", {})
+        rout = res.get("id") or res.get("item")
+        if not rout:
+            continue
+        ref_item(rout)
+        rec = {"type": d["type"], "result": rout, "count": res.get("count", 1), "removed": rid in removed}
+        if d["type"] == "minecraft:crafting_shaped":
+            rec["pattern"] = d.get("pattern", [])
+            rec["key"] = {k: ref_ing(v) for k, v in d.get("key", {}).items()}
+        elif d["type"] == "minecraft:crafting_shapeless":
+            rec["ingredients"] = [ref_ing(i) for i in d.get("ingredients", [])]
+        else:  # tool_action: use a tool on an item placed on the stone anvil
+            rec["tool"] = ref_ing(d.get("tool"))
+            rec["ingredients"] = [ref_ing(d.get("ingredient"))]
+        crafting[rid] = rec
+
+    for extra in ["silentgear:crimson_iron_ore", "silentgear:azure_silver_ore", "silentgear:bort_ore", "silentgear:flax_seeds",
+                  "silentgear:fluffy_seeds", "silentgear:netherwood_sapling", "silentgear:crimson_steel_block",
+                  "silentgear:azure_electrum_block", "silentgear:tyrian_steel_block", "silentgear:blueprint"]:
+        if pack.item_exists(extra):
+            ref_item(extra)
+
+    tag_lists = {}
+    for tag in ["silentgear:grader_catalysts/tier1", "silentgear:grader_catalysts/tier2", "silentgear:grader_catalysts/tier3",
+                "silentgear:grader_catalysts/tier4", "silentgear:grader_catalysts/tier5",
+                "silentgear:starlight_charger_catalysts/tier1", "silentgear:starlight_charger_catalysts/tier2",
+                "silentgear:starlight_charger_catalysts/tier3"]:
+        tag_lists[tag] = [ref_item(i) for i in pack.resolve_tag(tag) if pack.item_exists(i)]
+
     recipes = {}
     for rid, d in pack.recipes.items():
         res = d.get("result", {})
@@ -413,6 +476,9 @@ def main():
         "traits": traits,
         "parts": parts,
         "recipes": recipes,
+        "crafting": crafting,
+        "tagLists": tag_lists,
+        "removedRecipes": sorted(r for r in removed if r.split(":")[0] in LOAD_ORDER),
         "items": items_out,
         "lang": lang_keep,
         "textures": sg_tex,

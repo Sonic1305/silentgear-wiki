@@ -199,3 +199,29 @@ table.breakdown th { vertical-align: bottom; }
 table.breakdown tr.section td { background: var(--bg2); color: var(--muted); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-top: 8px; }
 table.breakdown th { white-space: normal; min-width: 64px; }
 table.breakdown th, table.breakdown td { padding: 6px 8px; }
+
+/* ---------- guide ---------- */
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 6px; }
+.toc a { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: .88rem; color: var(--text); }
+.toc a:hover { border-color: var(--accent); text-decoration: none; }
+section[id^="g-"] { scroll-margin-top: 80px; margin-top: 8px; }
+section[id^="g-"] > h2 { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+ol.steps { margin: 0; padding-left: 20px; }
+ol.steps li { margin-bottom: 6px; }
+.rcards { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.rcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; }
+.rcard.removed { opacity: .6; border-style: dashed; }
+.rtitle { font-weight: 600; font-size: .88rem; margin-bottom: 6px; }
+.rbody { display: flex; align-items: center; gap: 10px; }
+.rgrid { display: grid; gap: 3px; }
+.rslot { width: 34px; height: 34px; background: var(--bg2); border: 1px solid var(--line); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.rslot img { width: 26px; height: 26px; image-rendering: pixelated; object-fit: cover; object-position: top; }
+.rslot small { font-size: 9px; color: var(--muted); text-align: center; line-height: 1; }
+.rslot.out { width: 42px; height: 42px; border-color: var(--accent); }
+.rslot.out img { width: 32px; height: 32px; }
+.rslot .cnt { position: absolute; right: 2px; bottom: 0; font-size: 11px; text-shadow: 1px 1px 0 #000; }
+i.any { position: absolute; right: 2px; top: -1px; font-style: normal; color: var(--accent2); font-size: 11px; }
+.rarrow { color: var(--muted); font-size: 1.3rem; }
+.ranvil { display: flex; align-items: center; gap: 8px; }
+dl.faq dt { font-weight: 600; margin-top: 12px; }
+dl.faq dd { margin: 4px 0 0; color: var(--muted); }

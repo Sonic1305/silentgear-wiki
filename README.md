@@ -6,6 +6,7 @@ A small static wiki for **Silent Gear**, **Silent Gems** and **SGear Metalworks*
 All data is read directly from the modpack's jar files, so it matches the versions on the server.
 
 ## Pages
+- **Guide**: how the mod works in this pack: blueprints and templates (with crafting grids), making and casting parts, assembling, upgrades, alloys, grading, starcharging, repairs, ores and a FAQ.
 - **Materials**: stats per part type (main, rod, tip and so on), traits, harvest tier, the items that count as the material, and whether it's cast-only in this pack.
 - **Traits**: what each trait does, max level, conditions, and every material/part that gives it.
 - **Gear & Parts**: required/optional parts, blueprint recipes, foundry casting (SGear Metalworks), upgrades.
