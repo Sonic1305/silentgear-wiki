@@ -174,3 +174,8 @@ table.data td .namecell { white-space: nowrap; }
   #b-out { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; }
 }
 .role { color: var(--accent2); }
+.good { color: var(--good); }
+.bad { color: var(--bad); }
+.contrib { margin-top: 6px; line-height: 1.6; }
+table.data th .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.builder > *, .cols > * { min-width: 0; }

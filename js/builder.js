@@ -114,10 +114,11 @@ function render(app) {
             <div class="slot-head"><b>${esc(title)}</b><span class="req">${required ? "required" : "optional"} · ${cur?.count ?? n}× material</span></div>
             <div class="mat-pick">${matSelect(pt, cur?.mat || "", gear, !required)}</div>
             ${sub && sub.items.length ? `<label class="chk" style="margin-top:6px"><input type="checkbox" data-sub="${pt}" ${cur.count === 1 ? "checked" : ""}> Use ${esc(db.items[sub.items[0]]?.name || sub.label)} instead (counts as 1 material)</label>` : ""}
+            ${pt !== "main" && cur ? `<div class="contrib small" data-contrib="${pt}"></div>` : ""}
           </div>`;
         }).join("")}
         ${ups.length ? `<div class="slot"><div class="slot-head"><b>Upgrades</b></div>
-          ${ups.map(u => `<label class="chk" style="display:flex;margin:3px 0"><input type="checkbox" data-up="${esc(u.id)}" ${state.upgrades.includes(u.id) ? "checked" : ""}> ${esc(u.name)}</label>`).join("")}</div>` : ""}
+          ${ups.map(u => `<label class="chk" style="display:flex;margin:3px 0"><input type="checkbox" data-up="${esc(u.id)}" ${state.upgrades.includes(u.id) ? "checked" : ""}> ${esc(u.name)}</label>${state.upgrades.includes(u.id) ? `<div class="contrib small" data-contrib="up:${esc(u.id)}"></div>` : ""}`).join("")}</div>` : ""}
         <div class="slot">
           <div class="slot-head"><b>Extras</b></div>
           <label class="muted small" style="display:flex;align-items:center;gap:8px">Material grade
@@ -207,6 +208,7 @@ function renderOut() {
         <p class="small muted">Trait level = sum of levels ÷ min(half the number of trait entries on the gear, entries of this trait). A gear with only one trait gets its level doubled.</p>
       </div>
     </div>
+    ${breakdownCard(gear, statRows)}
     <div class="card" style="margin-top:14px">
       <h3>How to craft it</h3>
       ${craftSteps(gear)}
@@ -214,6 +216,98 @@ function renderOut() {
     ${res.notes.length ? `<p class="muted small" style="margin-top:10px">${res.notes.map(esc).join("<br>")}</p>` : ""}
     <p class="muted small">Formulas ported from the Silent Gear 4.2.1 source. Starcharged materials and alloys (whose stats depend on the mix) aren't simulated.</p>`;
   renderGearIcon($("#b-icon"), gear, iconParts);
+}
+
+// ---------- per-part contribution ("waterfall": add parts one at a time) ----------
+function breakdown(gear) {
+  const d = GEAR_DEFS[gear];
+  const order = ["main", ...d.required.filter(p => p !== "main"), ...d.optional].filter(pt => state.parts[pt]);
+  const opts = { grade: state.grade, wear: state.wear };
+  const steps = [];
+  const parts = {};
+  const ups = [];
+  const add = (key, label, optional) => {
+    const res = calculate(gear, parts, { ...opts, upgrades: [...ups] });
+    steps.push({ key, label, optional, res });
+  };
+  for (const pt of order) {
+    parts[pt] = state.parts[pt];
+    const m = db.materials[state.parts[pt].mat];
+    const title = pt === "main" ? (db.items[gearInfo()["silentgear:" + gear]?.mainPart]?.name || "Main") : partTypeName(pt);
+    add(pt, `${title}<div class="muted small">${esc(m?.name || "")}</div>`, !d.required.includes(pt));
+  }
+  for (const u of state.upgrades) {
+    ups.push(u);
+    add("up:" + u, esc(db.parts[u]?.name || u), true);
+  }
+  return steps;
+}
+
+function maxDur(res) {
+  const v = res.derived.find(x => x[0].startsWith("Max durability"))?.[1];
+  return v === undefined ? undefined : Number(String(v).replace(/,/g, ""));
+}
+
+function traitDiff(prev, cur) {
+  const a = new Map((prev?.traits || []).map(t => [t.trait, t.level]));
+  const b = new Map(cur.traits.map(t => [t.trait, t.level]));
+  const out = [];
+  for (const [t, l] of b) {
+    if (!a.has(t)) out.push(`<span class="role">+${esc(traitName(t))} ${l}</span>`);
+    else if (a.get(t) !== l) out.push(`<span class="${l > a.get(t) ? "good" : "bad"}">${esc(traitName(t))} ${a.get(t)}→${l}</span>`);
+  }
+  for (const [t, l] of a) if (!b.has(t)) out.push(`<span class="bad">−${esc(traitName(t))} ${l}</span>`);
+  return out;
+}
+
+function fmtDelta(s, dv) {
+  if (Math.abs(dv) < 0.005) return "";
+  const txt = fmtStat(s, Math.abs(dv));
+  return `<span class="${dv > 0 ? "good" : "bad"}">${dv > 0 ? "+" : "−"}${txt}</span>`;
+}
+
+function breakdownCard(gear, statRows) {
+  const steps = breakdown(gear);
+  if (steps.length < 2) return "";
+  const rows = [...statRows.map(s => [s, statName(s), r => r.stats[s]]), ["_dur", "Max durability (uses)", maxDur]]
+    .filter(([, , get]) => steps.some(st => get(st.res) !== undefined));
+  const cells = [];
+  for (const [s, label, get] of rows) {
+    const vals = steps.map(st => get(st.res));
+    if (vals.every(v => !v)) continue;
+    const fs = s === "_dur" ? "durability" : s;
+    cells.push(`<tr><td>${esc(label)}</td>
+      <td class="num">${vals[0] === undefined ? "" : fmtStat(fs, vals[0])}</td>
+      ${steps.slice(1).map((st, i) => `<td class="num">${fmtDelta(fs, (vals[i + 1] ?? 0) - (vals[i] ?? 0)) || '<span class="muted">·</span>'}</td>`).join("")}
+      <td class="num"><b>${vals.at(-1) === undefined ? "" : fmtStat(fs, vals.at(-1))}</b></td></tr>`);
+  }
+  const traitRow = `<tr><td>Traits</td>
+    <td class="small">${steps[0].res.traits.map(t => `${esc(traitName(t.trait))} ${t.level}`).join(", ") || '<span class="muted">–</span>'}</td>
+    ${steps.slice(1).map((st, i) => `<td class="small">${traitDiff(steps[i].res, st.res).join("<br>") || '<span class="muted">·</span>'}</td>`).join("")}
+    <td class="small"><b>${steps.at(-1).res.traits.map(t => `${esc(traitName(t.trait))} ${t.level}`).join(", ") || "–"}</b></td></tr>`;
+  // one-line summaries under the slots on the left
+  for (let i = 1; i < steps.length; i++) {
+    const st = steps[i], prev = steps[i - 1];
+    const hasDurRow = rows.some(([s]) => s === "durability" || s === "armor_durability");
+    const bits = rows.filter(([s]) => !(s === "_dur" && hasDurRow)).map(([s, label, get]) => {
+      const fs = s === "_dur" ? "durability" : s;
+      const dtxt = fmtDelta(fs, (get(st.res) ?? 0) - (get(prev.res) ?? 0));
+      return dtxt ? `${dtxt} ${esc(s === "_dur" ? "uses" : label)}` : "";
+    }).filter(Boolean);
+    bits.push(...traitDiff(prev.res, st.res));
+    queueMicrotask(() => {
+      const el = document.querySelector(`[data-contrib="${CSS.escape(st.key)}"]`);
+      if (el) el.innerHTML = bits.length ? `Adds: ${bits.join(" · ")}` : '<span class="muted">No effect on stats or traits for this gear.</span>';
+    });
+  }
+  return `<div class="card" style="margin-top:14px">
+    <h3>What each part adds</h3>
+    <p class="muted small">Parts are added one at a time, left to right: first column is the main part alone, each next column is the change from adding that part, the last column is the result. The columns add up to the total. Because Silent Gear averages and multiplies values, a part's effect can depend on the parts before it. Trait levels also shift when a part brings new traits, since the level formula depends on the total number of trait entries.</p>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Stat</th><th class="num">${steps[0].label}</th>${steps.slice(1).map(st => `<th class="num">+ ${st.label}${st.optional ? "" : ' <span class="muted small">(req.)</span>'}</th>`).join("")}<th class="num">Total</th></tr></thead>
+      <tbody>${cells.join("")}${traitRow}</tbody>
+    </table></div>
+  </div>`;
 }
 
 function fmtStat(s, v) {
