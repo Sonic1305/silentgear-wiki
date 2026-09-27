@@ -463,8 +463,11 @@ async function main() {
   initTraitFx(db);
   renderBrand($("#brand-icon"));
   const versions = Object.entries(db.versions).filter(([, v]) => v).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(", ");
-  $("#foot").innerHTML = `Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for TNP Limitless 8.<br>
+  $("#foot").innerHTML = `Made by <a href="https://github.com/Sonic1305">Sonic1305</a> for TNP Limitless 8. See <a href="https://sonic1305.github.io/">all guides</a> or <a id="feedback-link" href="https://sonic1305.github.io/#/feedback?guide=silentgear-wiki">send feedback</a>.<br>
     <span class="small">Data generated ${esc(db.generated)} from the modpack (${versions}). Unofficial fan page, Silent Gear by SilentChaos512.</span>`;
+  $("#feedback-link").addEventListener("click", e => {
+    e.currentTarget.href = `https://sonic1305.github.io/#/feedback?guide=silentgear-wiki&page=${encodeURIComponent(location.href)}`;
+  });
   setupSearch();
   window.addEventListener("hashchange", route);
   route();
