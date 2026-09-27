@@ -56,7 +56,7 @@ export function recipeCard(rid, opts = {}) {
   </div>`;
 }
 
-function recipesFor(itemId) {
+export function recipesFor(itemId) {
   return Object.keys(db.crafting).filter(k => db.crafting[k].result === itemId);
 }
 

@@ -6,6 +6,7 @@ import { renderGearIcon } from "./render.js";
 import { GEAR_DEFS, WEAPON_ROLES, WEAPON_STYLES } from "./geardefs.js";
 import { calculate } from "./calc.js";
 import { fmt } from "./util.js";
+import { recipeCard, recipesFor } from "./guide.js";
 
 // ---- derive gear info from recipes ----
 let GEAR = null;
@@ -140,12 +141,22 @@ export function viewGearDetail(app, gear) {
         ${mainPartDef ? `<p class="small muted">Base modifiers from the part itself: ${Object.entries(mainPartDef.properties || {}).filter(([k]) => k !== "traits").map(([k, v]) => `${esc(titleCase(k))} ${typeof v === "object" ? (v.operation === "ADD" ? "+" : esc(v.operation) + " ") + v.value : v}`).join(", ") || "none"}</p>` : ""}
       </div>
     </div>
-    ${partSections()}`;
+    ${blueprintSection(gear)}
+    ${partSections(gear)}`;
   renderGearIcon($("#gear-prev"), gear, { main: "silentgear:iron", rod: "silentgear:wood" });
 }
 
+// Blueprint + template recipes for this gear (blueprints are reusable, templates are used up)
+function blueprintSection(gear) {
+  const ids = [...recipesFor(`silentgear:${gear}_blueprint`), ...recipesFor(`silentgear:${gear}_template`)];
+  if (!ids.length) return "";
+  return `<h2>Blueprint &amp; template</h2>
+    <p class="muted small">The blueprint is reusable, the template is used up when you craft the part. <a href="#/guide?s=blueprints">More about blueprints</a></p>
+    <div class="rcards">${ids.map(id => recipeCard(id, { title: (db.items[db.crafting[id].result]?.name || "") + (id.endsWith("_alt") ? " (alternative)" : "") })).join("")}</div>`;
+}
+
 // How the generic (non-main) parts are made
-function partSections() {
+function partSections(gear) {
   const rows = Object.entries(db.recipes)
     .filter(([rid, r]) => r.type === "silentgear:compound_part" && rid.startsWith("silentgear:part/"))
     .map(([, r]) => {
@@ -155,7 +166,11 @@ function partSections() {
       return `<tr><td>${itemChip(r.result)}</td><td>blueprint + ${n}× material${extra.length ? " + " + extra.map(i => itemChip(i.items[0])).join(" + ") : ""}</td>
         <td class="small muted">${cast ? `or cast: ${cast.materialCount}× molten into ${itemChip(cast.cast)}` : ""}</td></tr>`;
     });
-  return `<h2>Other parts</h2><div class="table-wrap"><table class="data"><thead><tr><th>Part</th><th>Blueprint recipe</th><th>Casting</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  const d = GEAR_DEFS[gear];
+  const parts = d ? [...d.required, ...d.optional].filter(p => p !== "main") : [];
+  const bps = parts.flatMap(p => recipesFor(`silentgear:${p}_blueprint`).slice(0, 1));
+  return `<h2>Other parts</h2><div class="table-wrap"><table class="data"><thead><tr><th>Part</th><th>Blueprint recipe</th><th>Casting</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+    ${bps.length ? `<h3>Blueprints for the parts this item uses</h3><div class="rcards">${bps.map(id => recipeCard(id)).join("")}</div>` : ""}`;
 }
 
 
